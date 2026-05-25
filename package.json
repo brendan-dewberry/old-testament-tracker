@@ -1,0 +1,13 @@
+{
+  "name": "old-testament-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node server.mjs",
+    "test": "node --test test/unit/*.test.js test/integration/*.test.js test/e2e/*.test.js",
+    "test:unit": "node --test test/unit/*.test.js",
+    "test:integration": "node --test test/integration/*.test.js",
+    "test:e2e": "node --test test/e2e/*.test.js"
+  }
+}

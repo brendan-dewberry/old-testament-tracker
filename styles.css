@@ -1,0 +1,440 @@
+:root {
+  color-scheme: light;
+  --background: #f6f7f4;
+  --surface: #ffffff;
+  --surface-muted: #eef2ea;
+  --text: #18211d;
+  --muted: #617068;
+  --border: #d8dfd6;
+  --accent: #2f6f5e;
+  --accent-strong: #1f5548;
+  --accent-soft: #dcebe5;
+  --gold: #b47a2b;
+  --gold-soft: #f3e2c8;
+  --blue: #316b8f;
+  --blue-soft: #dce9f1;
+  --danger: #9b3d36;
+  --shadow: 0 18px 42px rgba(24, 33, 29, 0.08);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--background);
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select,
+input[type="email"],
+input[type="search"] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+button {
+  min-height: 40px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+button:hover,
+button:focus-visible {
+  border-color: var(--accent);
+}
+
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+button.primary:hover,
+button.primary:focus-visible {
+  background: var(--accent-strong);
+}
+
+button.danger {
+  color: var(--danger);
+}
+
+select,
+input[type="email"],
+input[type="search"] {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+a {
+  color: var(--accent-strong);
+}
+
+.app-shell {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 28px 0 44px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--gold);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: 2.25rem;
+  line-height: 1.05;
+}
+
+.target {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.top-actions,
+.schedule-tools,
+.day-actions,
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.progress-panel {
+  padding: 20px;
+}
+
+.progress-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.progress-heading h2 {
+  margin-bottom: 0;
+  font-size: 1.2rem;
+}
+
+.progress-percent {
+  color: var(--accent-strong);
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.progress-track {
+  overflow: hidden;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.stat {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+
+.stat dt {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.today-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.sync-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 16px 20px;
+}
+
+.sync-panel h2 {
+  margin-bottom: 4px;
+  font-size: 1.1rem;
+}
+
+.sync-actions input[type="email"] {
+  width: min(260px, 100%);
+}
+
+.today-panel h2 {
+  margin-bottom: 4px;
+  font-size: 1.2rem;
+}
+
+.reading {
+  margin-bottom: 0;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.meta {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.status-pill.warning {
+  background: var(--gold-soft);
+  color: #754b11;
+}
+
+.schedule {
+  padding: 0;
+}
+
+.schedule-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-header h2 {
+  margin-bottom: 0;
+  font-size: 1.25rem;
+}
+
+.schedule-tools input[type="search"] {
+  width: min(290px, 100%);
+}
+
+@media (min-width: 841px) {
+  .schedule-tools {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+}
+
+.schedule-list {
+  display: grid;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 44px minmax(128px, 0.35fr) minmax(180px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 78px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-row:last-child {
+  border-bottom: 0;
+}
+
+.schedule-row.is-complete {
+  background: #f0f7f3;
+}
+
+.schedule-row.is-today {
+  background: var(--blue-soft);
+}
+
+.schedule-row.is-complete.is-today {
+  background: #e6f2ec;
+}
+
+.date-block {
+  min-width: 0;
+}
+
+.date-block strong,
+.reading-block strong {
+  display: block;
+}
+
+.date-block span,
+.reading-block span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.row-link {
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.empty-state {
+  padding: 28px 20px;
+  color: var(--muted);
+}
+
+@media (max-width: 840px) {
+  .topbar,
+  .overview,
+  .schedule-header,
+  .sync-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .top-actions,
+  .schedule-tools,
+  .sync-actions {
+    align-items: stretch;
+  }
+
+  .top-actions > *,
+  .schedule-tools > *,
+  .sync-actions > * {
+    flex: 1 1 150px;
+  }
+
+  .schedule-row {
+    grid-template-columns: 34px 1fr;
+  }
+
+  .reading-block,
+  .row-link {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    width: min(100vw - 20px, 1180px);
+    padding-top: 18px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .reading {
+    font-size: 1.25rem;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-heading {
+    display: block;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .top-actions,
+  .schedule-tools,
+  .today-panel,
+  .progress-panel {
+    display: none;
+  }
+
+  .app-shell {
+    width: 100%;
+    padding: 0;
+  }
+
+  .panel,
+  .schedule-row {
+    box-shadow: none;
+  }
+}
