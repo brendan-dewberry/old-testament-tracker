@@ -41,12 +41,6 @@ function bindEvents(root, state) {
       return;
     }
 
-    if (target.matches("[data-filter]")) {
-      state.filter = target.value;
-      render(root, state);
-      return;
-    }
-
     if (target.matches("[data-translation]")) {
       state.translation = target.value;
       render(root, state);
@@ -102,6 +96,10 @@ function bindEvents(root, state) {
       return;
     }
 
+    if (action.dataset.filterValue) {
+      state.filter = action.dataset.filterValue;
+      render(root, state);
+    }
   });
 }
 
@@ -331,7 +329,7 @@ function renderHeader(state) {
   const actions = canUseTracker(state)
     ? `
         <div class="top-actions" aria-label="Plan actions">
-          <select data-translation aria-label="Bible translation">
+          <select class="select-control" data-translation aria-label="Bible translation">
             ${TRANSLATIONS.map(
               (translation) =>
                 `<option value="${translation}" ${
@@ -339,9 +337,9 @@ function renderHeader(state) {
                 }>${translation}</option>`,
             ).join("")}
           </select>
-          <button class="primary" data-action="mark-through-today" type="button">Mark through today</button>
-          <button data-action="print" type="button">Print</button>
-          <button class="danger" data-action="reset" type="button">Reset</button>
+          <button class="button primary" data-action="mark-through-today" type="button">Mark through today</button>
+          <button class="button secondary" data-action="print" type="button">Print</button>
+          <button class="button destructive" data-action="reset" type="button">Reset</button>
         </div>
       `
     : "";
@@ -365,6 +363,7 @@ function renderAuthGate(state) {
         <span class="status-pill warning">Setup required</span>
         <h2>Sign In Required</h2>
         <p class="meta">${escapeHtml(state.sync.message)}</p>
+        ${renderAuthMetrics(state)}
       </section>
     `;
   }
@@ -376,7 +375,7 @@ function renderAuthGate(state) {
         <h2>Loading Progress</h2>
         <p class="meta">${escapeHtml(state.sync.message)}</p>
         <div class="sync-actions">
-          <button data-action="sign-out" type="button">Sign out</button>
+          <button class="button secondary" data-action="sign-out" type="button">Sign out</button>
         </div>
       </section>
     `;
@@ -387,17 +386,40 @@ function renderAuthGate(state) {
       <span class="status-pill warning">${escapeHtml(getSyncLabel(state.sync.status))}</span>
       <h2>Sign In Required</h2>
       <p class="meta">${escapeHtml(state.sync.message)}</p>
+      ${renderAuthMetrics(state)}
       <div class="sync-actions">
         <input
+          class="input-control"
           data-sync-email
           type="email"
           placeholder="Email address"
           value="${escapeHtml(state.sync.email)}"
           aria-label="Email address"
         >
-        <button class="primary" data-action="sign-in" type="button">Send link</button>
+        <button class="button primary" data-action="sign-in" type="button">Send link</button>
       </div>
     </section>
+  `;
+}
+
+function renderAuthMetrics(state) {
+  const chapterCount = state.plan.reduce((sum, day) => sum + day.chapterCount, 0);
+
+  return `
+    <dl class="auth-metrics" aria-label="Plan summary">
+      ${renderMetric("Days", state.plan.length)}
+      ${renderMetric("Chapters", chapterCount)}
+      ${renderMetric("Finish", formatShortDate(PLAN_END_DATE))}
+    </dl>
+  `;
+}
+
+function renderMetric(label, value) {
+  return `
+    <div>
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${escapeHtml(value)}</dd>
+    </div>
   `;
 }
 
@@ -490,7 +512,7 @@ function renderSyncPanel(state) {
         <span class="status-pill ${state.sync.status === "error" ? "warning" : ""}">${escapeHtml(
           getSyncLabel(state.sync.status),
         )}</span>
-        <button data-action="sign-out" type="button">Sign out</button>
+        <button class="button secondary" data-action="sign-out" type="button">Sign out</button>
       </div>
     </section>
   `;
@@ -516,20 +538,43 @@ function renderSchedule({ completedDayIds, state, visibleDays }) {
       <div class="schedule-header">
         <h2>Schedule</h2>
         <div class="schedule-tools">
-          <input data-search type="search" placeholder="Search books or dates" value="${escapeHtml(
+          <input class="input-control" data-search type="search" placeholder="Search books or dates" value="${escapeHtml(
             state.query,
           )}" aria-label="Search schedule">
-          <select data-filter aria-label="Filter schedule">
-            <option value="all" ${state.filter === "all" ? "selected" : ""}>All readings</option>
-            <option value="remaining" ${state.filter === "remaining" ? "selected" : ""}>Remaining</option>
-            <option value="complete" ${state.filter === "complete" ? "selected" : ""}>Complete</option>
-          </select>
+          ${renderFilterSegments(state.filter)}
         </div>
       </div>
       <div class="schedule-list">
         ${rows}
       </div>
     </section>
+  `;
+}
+
+function renderFilterSegments(activeFilter) {
+  const options = [
+    ["all", "All"],
+    ["remaining", "Open"],
+    ["complete", "Done"],
+  ];
+
+  return `
+    <div class="segmented-control" role="group" aria-label="Filter schedule">
+      ${options
+        .map(
+          ([value, label]) => `
+            <button
+              class="segment-button ${activeFilter === value ? "is-active" : ""}"
+              data-filter-value="${value}"
+              type="button"
+              aria-pressed="${activeFilter === value}"
+            >
+              ${label}
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
   `;
 }
 
