@@ -16,18 +16,6 @@ export function normalizeProgress(progress) {
   };
 }
 
-export function mergeProgress(...progressValues) {
-  const completedDayIds = new Set();
-
-  for (const progress of progressValues) {
-    for (const dayId of normalizeProgress(progress).completedDayIds) {
-      completedDayIds.add(dayId);
-    }
-  }
-
-  return normalizeProgress({ completedDayIds: Array.from(completedDayIds) });
-}
-
 export function toggleCompletedDay(progress, dayId, completed) {
   const normalized = normalizeProgress(progress);
   const completedDayIds = new Set(normalized.completedDayIds);

@@ -1,6 +1,6 @@
 # Old Testament Tracker
 
-A small local web app for tracking an Old Testament reading plan from May 25, 2026 through December 31, 2026.
+A small web app for tracking an Old Testament reading plan from May 25, 2026 through December 31, 2026.
 
 ## Run
 
@@ -18,7 +18,7 @@ npm test
 
 ## Cloud Sync
 
-The app syncs progress through Supabase project `zufsnuxulmontwosvzog`.
+The app requires sign-in and stores reading progress in Supabase project `zufsnuxulmontwosvzog`.
 
 The database schema and row-level security policies live in [supabase/schema.sql](supabase/schema.sql). To recreate the database table in another project:
 

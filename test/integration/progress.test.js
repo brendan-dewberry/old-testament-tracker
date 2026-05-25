@@ -5,7 +5,6 @@ import { buildReadingPlan, summarizeProgress } from "../../src/plan.js";
 import {
   createEmptyProgress,
   markThroughDate,
-  mergeProgress,
   normalizeProgress,
   toggleCompletedDay,
 } from "../../src/progress.js";
@@ -43,18 +42,6 @@ test("normalizeProgress ignores bad saved data while preserving valid day ids", 
     }),
     {
       completedDayIds: ["2026-05-25", "2026-05-26"],
-    },
-  );
-});
-
-test("mergeProgress keeps all completed local and cloud readings", () => {
-  assert.deepEqual(
-    mergeProgress(
-      { completedDayIds: ["2026-05-25", "2026-05-27"] },
-      { completedDayIds: ["2026-05-26", "2026-05-27"] },
-    ),
-    {
-      completedDayIds: ["2026-05-25", "2026-05-26", "2026-05-27"],
     },
   );
 });

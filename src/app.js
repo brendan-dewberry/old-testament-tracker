@@ -7,32 +7,23 @@ import {
   getLocalTodayIso,
   summarizeProgress,
 } from "./plan.js";
-import { markThroughDate, toggleCompletedDay } from "./progress.js";
-import {
-  loadProgress,
-  loadTranslation,
-  saveProgress,
-  saveTranslation,
-} from "./storage.js";
+import { createEmptyProgress, markThroughDate, toggleCompletedDay } from "./progress.js";
 import { SUPABASE_CONFIG } from "./supabase-config.js";
-import {
-  createCloudProgressStore,
-  isSupabaseConfigured,
-  mergeCloudProgress,
-} from "./supabase-sync.js";
+import { createCloudProgressStore, isSupabaseConfigured } from "./supabase-sync.js";
 
 const TRANSLATIONS = ["ESV", "NIV", "KJV", "NKJV", "NLT", "NASB", "CSB"];
+const DEFAULT_TRANSLATION = "ESV";
 
 export function main({ root = document.querySelector("#app") } = {}) {
   const state = {
     cloudStore: null,
     filter: "all",
     plan: buildReadingPlan(),
-    progress: loadProgress(),
+    progress: createEmptyProgress(),
     query: "",
     sync: createSyncState(SUPABASE_CONFIG),
     todayIso: getLocalTodayIso(),
-    translation: loadTranslation(),
+    translation: DEFAULT_TRANSLATION,
   };
 
   bindEvents(root, state);
@@ -58,7 +49,6 @@ function bindEvents(root, state) {
 
     if (target.matches("[data-translation]")) {
       state.translation = target.value;
-      saveTranslation(state.translation);
       render(root, state);
       void saveCloudSnapshot(root, state);
     }
@@ -147,8 +137,11 @@ async function applyCloudSession(root, state, session) {
   state.sync.userEmail = session?.user?.email ?? "";
 
   if (!session) {
+    state.progress = createEmptyProgress();
+    state.translation = DEFAULT_TRANSLATION;
     setSyncState(root, state, {
-      message: "Sign in to sync progress across devices.",
+      message: "Sign in to save progress in Supabase.",
+      progressLoaded: false,
       status: "signed-out",
     });
     return;
@@ -169,21 +162,13 @@ async function syncFromCloud(root, state) {
 
   try {
     const remote = await state.cloudStore.loadProgress();
-    state.progress = mergeCloudProgress({
-      localProgress: state.progress,
-      remoteProgress: remote.progress,
-    });
-
-    if (remote.translation && state.translation === "ESV") {
-      state.translation = remote.translation;
-      saveTranslation(state.translation);
-    }
-
-    saveProgress(state.progress);
+    state.progress = remote.progress;
+    state.translation = remote.translation ?? DEFAULT_TRANSLATION;
     await saveCloudSnapshot(root, state, { renderSyncingState: false });
   } catch (error) {
     setSyncState(root, state, {
       message: error.message,
+      progressLoaded: false,
       status: "error",
     });
   }
@@ -245,7 +230,11 @@ async function signOut(root, state) {
 }
 
 function persistProgress(root, state) {
-  saveProgress(state.progress);
+  if (!state.sync.session) {
+    render(root, state);
+    return;
+  }
+
   render(root, state);
   void saveCloudSnapshot(root, state);
 }
@@ -270,11 +259,13 @@ async function saveCloudSnapshot(root, state, { renderSyncingState = true } = {}
     });
     setSyncState(root, state, {
       message: `Synced ${formatClockTime(new Date())}`,
+      progressLoaded: true,
       status: "synced",
     });
   } catch (error) {
     setSyncState(root, state, {
       message: error.message,
+      progressLoaded: true,
       status: "error",
     });
   }
@@ -288,7 +279,8 @@ function createSyncState(config) {
     email: "",
     message: configured
       ? "Connecting to Supabase..."
-      : "Local only until Supabase is configured.",
+      : "Supabase must be configured before this tracker can save progress.",
+    progressLoaded: false,
     session: null,
     status: configured ? "connecting" : "local",
     unsubscribe: null,
@@ -305,6 +297,14 @@ function setSyncState(root, state, patch) {
 }
 
 function render(root, state) {
+  if (!canUseTracker(state)) {
+    root.innerHTML = `
+      ${renderHeader(state)}
+      ${renderAuthGate(state)}
+    `;
+    return;
+  }
+
   const summary = summarizeProgress({
     completedDayIds: state.progress.completedDayIds,
     plan: state.plan,
@@ -331,6 +331,24 @@ function render(root, state) {
 }
 
 function renderHeader(state) {
+  const actions = canUseTracker(state)
+    ? `
+        <div class="top-actions" aria-label="Plan actions">
+          <select data-translation aria-label="Bible translation">
+            ${TRANSLATIONS.map(
+              (translation) =>
+                `<option value="${translation}" ${
+                  translation === state.translation ? "selected" : ""
+                }>${translation}</option>`,
+            ).join("")}
+          </select>
+          <button class="primary" data-action="mark-through-today" type="button">Mark through today</button>
+          <button data-action="print" type="button">Print</button>
+          <button class="danger" data-action="reset" type="button">Reset</button>
+        </div>
+      `
+    : "";
+
   return `
     <header class="topbar">
       <div>
@@ -338,20 +356,51 @@ function renderHeader(state) {
         <h1>Old Testament Tracker</h1>
         <p class="target">${formatFullDate(PLAN_START_DATE)} to ${formatFullDate(PLAN_END_DATE)}</p>
       </div>
-      <div class="top-actions" aria-label="Plan actions">
-        <select data-translation aria-label="Bible translation">
-          ${TRANSLATIONS.map(
-            (translation) =>
-              `<option value="${translation}" ${
-                translation === state.translation ? "selected" : ""
-              }>${translation}</option>`,
-          ).join("")}
-        </select>
-        <button class="primary" data-action="mark-through-today" type="button">Mark through today</button>
-        <button data-action="print" type="button">Print</button>
-        <button class="danger" data-action="reset" type="button">Reset</button>
-      </div>
+      ${actions}
     </header>
+  `;
+}
+
+function renderAuthGate(state) {
+  if (!state.sync.configured) {
+    return `
+      <section class="panel auth-panel" aria-label="Sign in required">
+        <span class="status-pill warning">Setup required</span>
+        <h2>Sign In Required</h2>
+        <p class="meta">${escapeHtml(state.sync.message)}</p>
+      </section>
+    `;
+  }
+
+  if (state.sync.session && !state.sync.progressLoaded) {
+    return `
+      <section class="panel auth-panel" aria-label="Loading progress">
+        <span class="status-pill">Connected</span>
+        <h2>Loading Progress</h2>
+        <p class="meta">${escapeHtml(state.sync.message)}</p>
+        <div class="sync-actions">
+          <button data-action="sign-out" type="button">Sign out</button>
+        </div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="panel auth-panel" aria-label="Sign in required">
+      <span class="status-pill warning">${escapeHtml(getSyncLabel(state.sync.status))}</span>
+      <h2>Sign In Required</h2>
+      <p class="meta">${escapeHtml(state.sync.message)}</p>
+      <div class="sync-actions">
+        <input
+          data-sync-email
+          type="email"
+          placeholder="Email address"
+          value="${escapeHtml(state.sync.email)}"
+          aria-label="Email address"
+        >
+        <button class="primary" data-action="sign-in" type="button">Send link</button>
+      </div>
+    </section>
   `;
 }
 
@@ -432,53 +481,20 @@ function renderTodayPanel({ completedDayIds, currentDay, state }) {
 }
 
 function renderSyncPanel(state) {
-  if (!state.sync.configured) {
-    return `
-      <section class="panel sync-panel" aria-label="Cloud sync">
-        <div>
-          <h2>Sync</h2>
-          <p class="meta">Local only</p>
-        </div>
-        <span class="status-pill warning">Supabase not configured</span>
-      </section>
-    `;
-  }
-
-  if (state.sync.session) {
-    return `
-      <section class="panel sync-panel" aria-label="Cloud sync">
-        <div>
-          <h2>Sync</h2>
-          <p class="meta">${escapeHtml(state.sync.userEmail)} - ${escapeHtml(
-            state.sync.message,
-          )}</p>
-        </div>
-        <div class="sync-actions">
-          <span class="status-pill ${state.sync.status === "error" ? "warning" : ""}">${escapeHtml(
-            getSyncLabel(state.sync.status),
-          )}</span>
-          <button data-action="sync-now" type="button">Sync now</button>
-          <button data-action="sign-out" type="button">Sign out</button>
-        </div>
-      </section>
-    `;
-  }
-
   return `
     <section class="panel sync-panel" aria-label="Cloud sync">
       <div>
         <h2>Sync</h2>
-        <p class="meta">${escapeHtml(state.sync.message)}</p>
+        <p class="meta">${escapeHtml(state.sync.userEmail)} - ${escapeHtml(
+          state.sync.message,
+        )}</p>
       </div>
       <div class="sync-actions">
-        <input
-          data-sync-email
-          type="email"
-          placeholder="Email address"
-          value="${escapeHtml(state.sync.email)}"
-          aria-label="Email address"
-        >
-        <button class="primary" data-action="sign-in" type="button">Send link</button>
+        <span class="status-pill ${state.sync.status === "error" ? "warning" : ""}">${escapeHtml(
+          getSyncLabel(state.sync.status),
+        )}</span>
+        <button data-action="sync-now" type="button">Sync now</button>
+        <button data-action="sign-out" type="button">Sign out</button>
       </div>
     </section>
   `;
@@ -564,7 +580,7 @@ function getSyncLabel(status) {
     connecting: "Connecting",
     error: "Needs attention",
     "link-sent": "Link sent",
-    local: "Local only",
+    local: "Unavailable",
     "signed-out": "Signed out",
     "signing-in": "Sending",
     synced: "Synced",
@@ -572,6 +588,10 @@ function getSyncLabel(status) {
   };
 
   return labels[status] ?? "Sync";
+}
+
+function canUseTracker(state) {
+  return Boolean(state.sync.session && state.sync.progressLoaded);
 }
 
 function getVisibleDays({ completedDayIds, filter, plan, query }) {

@@ -1,4 +1,4 @@
-import { mergeProgress, normalizeProgress } from "./progress.js";
+import { normalizeProgress } from "./progress.js";
 
 export const CLOUD_PLAN_ID = "old-testament-2026";
 export const PROGRESS_TABLE = "old_testament_progress";
@@ -115,10 +115,6 @@ export function buildProgressPayload({ progress, translation, userId }) {
     updated_at: new Date().toISOString(),
     user_id: userId,
   };
-}
-
-export function mergeCloudProgress({ localProgress, remoteProgress }) {
-  return mergeProgress(localProgress, remoteProgress);
 }
 
 async function loadSupabaseClient(url, anonKey) {

@@ -237,6 +237,19 @@ h1 {
   font-size: 1.1rem;
 }
 
+.auth-panel {
+  display: grid;
+  gap: 14px;
+  max-width: 620px;
+  margin: 42px auto 0;
+  padding: 22px;
+}
+
+.auth-panel h2 {
+  margin-bottom: 0;
+  font-size: 1.45rem;
+}
+
 .sync-actions input[type="email"] {
   width: min(260px, 100%);
 }
