@@ -102,9 +102,6 @@ function bindEvents(root, state) {
       return;
     }
 
-    if (action.dataset.action === "sync-now") {
-      void syncFromCloud(root, state);
-    }
   });
 }
 
@@ -156,7 +153,7 @@ async function syncFromCloud(root, state) {
   }
 
   setSyncState(root, state, {
-    message: "Syncing progress...",
+    message: "Loading progress...",
     status: "syncing",
   });
 
@@ -258,7 +255,7 @@ async function saveCloudSnapshot(root, state, { renderSyncingState = true } = {}
       userId: state.sync.session.user.id,
     });
     setSyncState(root, state, {
-      message: `Synced ${formatClockTime(new Date())}`,
+      message: `Saved ${formatClockTime(new Date())}`,
       progressLoaded: true,
       status: "synced",
     });
@@ -484,7 +481,7 @@ function renderSyncPanel(state) {
   return `
     <section class="panel sync-panel" aria-label="Cloud sync">
       <div>
-        <h2>Sync</h2>
+        <h2>Account</h2>
         <p class="meta">${escapeHtml(state.sync.userEmail)} - ${escapeHtml(
           state.sync.message,
         )}</p>
@@ -493,7 +490,6 @@ function renderSyncPanel(state) {
         <span class="status-pill ${state.sync.status === "error" ? "warning" : ""}">${escapeHtml(
           getSyncLabel(state.sync.status),
         )}</span>
-        <button data-action="sync-now" type="button">Sync now</button>
         <button data-action="sign-out" type="button">Sign out</button>
       </div>
     </section>
@@ -583,8 +579,8 @@ function getSyncLabel(status) {
     local: "Unavailable",
     "signed-out": "Signed out",
     "signing-in": "Sending",
-    synced: "Synced",
-    syncing: "Syncing",
+    synced: "Saved",
+    syncing: "Saving",
   };
 
   return labels[status] ?? "Sync";
