@@ -316,12 +316,13 @@ function render(root, state) {
 
   root.innerHTML = `
     ${renderHeader(state)}
-    <section class="overview" aria-label="Reading progress">
-      ${renderProgressPanel(summary)}
+    <section class="workspace" aria-label="Reading tracker">
+      <aside class="workspace-sidebar">
       ${renderTodayPanel({ completedDayIds, currentDay, state })}
+        ${renderProgressPanel(summary)}
+      </aside>
+      ${renderSchedule({ completedDayIds, state, visibleDays })}
     </section>
-    ${renderSyncPanel(state)}
-    ${renderSchedule({ completedDayIds, state, visibleDays })}
   `;
 }
 
@@ -329,17 +330,20 @@ function renderHeader(state) {
   const actions = canUseTracker(state)
     ? `
         <div class="top-actions" aria-label="Plan actions">
-          <select class="select-control" data-translation aria-label="Bible translation">
-            ${TRANSLATIONS.map(
-              (translation) =>
-                `<option value="${translation}" ${
-                  translation === state.translation ? "selected" : ""
-                }>${translation}</option>`,
-            ).join("")}
-          </select>
-          <button class="button primary" data-action="mark-through-today" type="button">Mark through today</button>
-          <button class="button secondary" data-action="print" type="button">Print</button>
-          <button class="button destructive" data-action="reset" type="button">Reset</button>
+          ${renderAccountSummary(state)}
+          <div class="toolbar-row">
+            <select class="select-control" data-translation aria-label="Bible translation">
+              ${TRANSLATIONS.map(
+                (translation) =>
+                  `<option value="${translation}" ${
+                    translation === state.translation ? "selected" : ""
+                  }>${translation}</option>`,
+              ).join("")}
+            </select>
+            <button class="button primary" data-action="mark-through-today" type="button">Mark through today</button>
+            <button class="button secondary" data-action="print" type="button">Print</button>
+            <button class="button destructive" data-action="reset" type="button">Reset</button>
+          </div>
         </div>
       `
     : "";
@@ -353,6 +357,21 @@ function renderHeader(state) {
       </div>
       ${actions}
     </header>
+  `;
+}
+
+function renderAccountSummary(state) {
+  return `
+    <section class="account-summary" aria-label="Account">
+      <div>
+        <span class="account-label">Account</span>
+        <p>${escapeHtml(state.sync.userEmail)}</p>
+      </div>
+      <span class="status-pill ${state.sync.status === "error" ? "warning" : ""}">${escapeHtml(
+        getSyncLabel(state.sync.status),
+      )}</span>
+      <button class="button ghost" data-action="sign-out" type="button">Sign out</button>
+    </section>
   `;
 }
 
@@ -494,25 +513,6 @@ function renderTodayPanel({ completedDayIds, currentDay, state }) {
           Mark complete
         </label>
         <a href="${readingUrl(currentDay.readings, state.translation)}" target="_blank" rel="noreferrer">Open in BibleGateway</a>
-      </div>
-    </section>
-  `;
-}
-
-function renderSyncPanel(state) {
-  return `
-    <section class="panel sync-panel" aria-label="Cloud sync">
-      <div>
-        <h2>Account</h2>
-        <p class="meta">${escapeHtml(state.sync.userEmail)} - ${escapeHtml(
-          state.sync.message,
-        )}</p>
-      </div>
-      <div class="sync-actions">
-        <span class="status-pill ${state.sync.status === "error" ? "warning" : ""}">${escapeHtml(
-          getSyncLabel(state.sync.status),
-        )}</span>
-        <button class="button secondary" data-action="sign-out" type="button">Sign out</button>
       </div>
     </section>
   `;

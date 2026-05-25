@@ -170,17 +170,17 @@ a:hover {
 }
 
 .app-shell {
-  width: min(1180px, calc(100vw - 32px));
+  width: min(1280px, calc(100vw - 32px));
   margin: 0 auto;
-  padding: 32px 0 48px;
+  padding: 28px 0 36px;
 }
 
 .topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(420px, auto);
   gap: 20px;
-  align-items: start;
-  margin-bottom: 24px;
+  align-items: center;
+  margin-bottom: 18px;
 }
 
 .eyebrow {
@@ -219,11 +219,74 @@ h1 {
   align-items: center;
 }
 
-.overview {
+.top-actions {
+  justify-content: flex-end;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.account-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  max-width: 650px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-summary p {
+  overflow: hidden;
+  margin-bottom: 0;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.button.ghost,
+button.ghost {
+  min-height: 34px;
+  padding: 0 10px;
+  color: var(--muted-foreground);
+}
+
+.button.ghost:hover,
+button.ghost:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
   gap: 16px;
-  margin-bottom: 16px;
+  align-items: start;
+}
+
+.workspace-sidebar {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 16px;
 }
 
 .panel {
@@ -236,7 +299,6 @@ h1 {
 
 .progress-panel,
 .today-panel,
-.sync-panel,
 .auth-panel {
   position: relative;
   overflow: hidden;
@@ -256,7 +318,6 @@ h1 {
 
 .progress-heading h2,
 .today-panel h2,
-.sync-panel h2,
 .schedule-header h2,
 .auth-panel h2 {
   margin-bottom: 0;
@@ -285,7 +346,7 @@ h1 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 18px;
 }
@@ -319,20 +380,6 @@ h1 {
 
 .today-panel .meta {
   margin-top: 4px;
-}
-
-.sync-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-}
-
-.sync-panel h2 {
-  margin-bottom: 4px;
 }
 
 .auth-panel {
@@ -414,6 +461,11 @@ h1 {
 }
 
 .schedule {
+  display: flex;
+  min-height: 560px;
+  max-height: calc(100vh - 142px);
+  flex-direction: column;
+  overflow: hidden;
   padding: 0;
 }
 
@@ -422,8 +474,10 @@ h1 {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
+  flex: 0 0 auto;
   padding: 18px 20px;
   border-bottom: 1px solid var(--border);
+  background: var(--card);
 }
 
 .schedule-tools input[type="search"] {
@@ -463,6 +517,8 @@ h1 {
 
 .schedule-list {
   display: grid;
+  min-height: 0;
+  overflow: auto;
 }
 
 .schedule-row {
@@ -470,8 +526,8 @@ h1 {
   grid-template-columns: 42px minmax(128px, 0.34fr) minmax(180px, 1fr) auto;
   gap: 14px;
   align-items: center;
-  min-height: 76px;
-  padding: 14px 20px;
+  min-height: 66px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border);
   transition:
     background 140ms ease,
@@ -551,10 +607,21 @@ h1 {
 
 @media (max-width: 840px) {
   .topbar,
-  .overview,
-  .schedule-header,
-  .sync-panel {
+  .workspace,
+  .schedule-header {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-sidebar {
+    position: static;
+  }
+
+  .schedule {
+    max-height: none;
+  }
+
+  .schedule-list {
+    overflow: visible;
   }
 
   .stats {
@@ -567,7 +634,17 @@ h1 {
     align-items: stretch;
   }
 
+  .top-actions,
+  .toolbar-row {
+    justify-content: stretch;
+  }
+
+  .account-summary {
+    max-width: none;
+  }
+
   .top-actions > *,
+  .toolbar-row > *,
   .schedule-tools > *,
   .sync-actions > * {
     flex: 1 1 150px;
@@ -605,6 +682,14 @@ h1 {
     display: block;
   }
 
+  .account-summary {
+    grid-template-columns: 1fr auto;
+  }
+
+  .account-summary .button {
+    grid-column: 1 / -1;
+  }
+
   .auth-panel {
     margin-top: 36px;
     padding: 20px;
@@ -632,7 +717,7 @@ h1 {
   .schedule-tools,
   .today-panel,
   .progress-panel,
-  .sync-panel {
+  .account-summary {
     display: none;
   }
 
