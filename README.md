@@ -18,11 +18,18 @@ npm test
 
 ## Cloud Sync
 
-The app runs without cloud sync and saves progress in the browser. To enable cross-device sync:
+The app syncs progress through Supabase project `zufsnuxulmontwosvzog`.
 
-1. Create a Supabase project.
-2. Run [supabase/schema.sql](supabase/schema.sql) in the Supabase SQL editor.
-3. Add the GitHub Pages URL to Supabase Auth redirect URLs.
-4. Put the project URL and anon key in [src/supabase-config.js](src/supabase-config.js).
+The database schema and row-level security policies live in [supabase/schema.sql](supabase/schema.sql). To recreate the database table in another project:
+
+```bash
+supabase db query --linked --file supabase/schema.sql
+```
+
+The hosted app URL is already configured as an allowed Auth redirect URL:
+
+```text
+https://brendan-dewberry.github.io/old-testament-tracker/
+```
 
 Only the anon key belongs in the browser. Do not put a service-role key in this project.

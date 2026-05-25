@@ -210,7 +210,7 @@ async function signInWithEmail(root, state) {
   });
 
   try {
-    await state.cloudStore.signInWithEmail(email, window.location.href);
+    await state.cloudStore.signInWithEmail(email, getAuthRedirectUrl(window.location));
     setSyncState(root, state, {
       email,
       message: "Check your email for the sign-in link.",
@@ -612,6 +612,10 @@ function readingUrl(readings, translation) {
   return `https://www.biblegateway.com/passage/?search=${search}&version=${encodeURIComponent(
     translation,
   )}`;
+}
+
+function getAuthRedirectUrl(location) {
+  return `${location.origin}${location.pathname}`;
 }
 
 function formatFullDate(isoDate) {
