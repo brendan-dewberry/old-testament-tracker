@@ -1,13 +1,32 @@
 create table if not exists public.old_testament_progress (
   user_id uuid not null references auth.users(id) on delete cascade,
   plan_id text not null default 'old-testament-2026',
+  completed_chapter_ids jsonb not null default '[]'::jsonb,
   completed_day_ids jsonb not null default '[]'::jsonb,
   translation text not null default 'ESV',
   updated_at timestamptz not null default now(),
   primary key (user_id, plan_id),
+  constraint old_testament_progress_completed_chapter_ids_array
+    check (jsonb_typeof(completed_chapter_ids) = 'array'),
   constraint old_testament_progress_completed_day_ids_array
     check (jsonb_typeof(completed_day_ids) = 'array')
 );
+
+alter table public.old_testament_progress
+  add column if not exists completed_chapter_ids jsonb not null default '[]'::jsonb;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'old_testament_progress_completed_chapter_ids_array'
+  ) then
+    alter table public.old_testament_progress
+      add constraint old_testament_progress_completed_chapter_ids_array
+      check (jsonb_typeof(completed_chapter_ids) = 'array');
+  end if;
+end $$;
 
 alter table public.old_testament_progress enable row level security;
 

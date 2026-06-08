@@ -70,21 +70,22 @@ export function buildReadingPlan({
       id: date,
       date,
       dayNumber: index + 1,
+      chapters: dailyChapters,
       readings: groupReadings(dailyChapters),
       chapterCount: dailyChapters.length,
     };
   });
 }
 
-export function summarizeProgress({ plan, completedDayIds, todayIso }) {
-  const completed = new Set(completedDayIds);
+export function summarizeProgress({ plan, completedChapterIds = [], todayIso }) {
+  const completed = new Set(completedChapterIds);
   const totalChapters = sumChapters(plan);
-  const completedChapters = sumChapters(plan.filter((day) => completed.has(day.id)));
+  const completedChapters = countCompletedChapters(plan, completed);
   const scheduledBeforeToday = sumChapters(plan.filter((day) => day.date < todayIso));
   const scheduledChapters = sumChapters(plan.filter((day) => day.date <= todayIso));
   const dueChapters = Math.max(0, scheduledChapters - completedChapters);
   const overdueChapters = Math.max(0, scheduledBeforeToday - completedChapters);
-  const completedDays = plan.filter((day) => completed.has(day.id)).length;
+  const completedDays = plan.filter((day) => isDayComplete(day, completed)).length;
 
   return {
     completedChapters,
@@ -129,6 +130,7 @@ export function getLocalTodayIso(date = new Date()) {
 export function flattenChapters(books = OLD_TESTAMENT_BOOKS) {
   return books.flatMap((book) =>
     Array.from({ length: book.chapters }, (_, index) => ({
+      id: formatChapterId(book.name, index + 1),
       book: book.name,
       chapter: index + 1,
     })),
@@ -211,4 +213,20 @@ function addUtcDays(date, days) {
 
 function sumChapters(planDays) {
   return planDays.reduce((sum, day) => sum + day.chapterCount, 0);
+}
+
+function countCompletedChapters(planDays, completedChapterIds) {
+  return planDays.reduce(
+    (sum, day) =>
+      sum + day.chapters.filter((chapter) => completedChapterIds.has(chapter.id)).length,
+    0,
+  );
+}
+
+function isDayComplete(day, completedChapterIds) {
+  return day.chapters.every((chapter) => completedChapterIds.has(chapter.id));
+}
+
+function formatChapterId(book, chapter) {
+  return `${book} ${chapter}`;
 }

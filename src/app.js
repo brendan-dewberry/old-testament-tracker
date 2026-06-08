@@ -7,7 +7,13 @@ import {
   getLocalTodayIso,
   summarizeProgress,
 } from "./plan.js";
-import { createEmptyProgress, markThroughDate, toggleCompletedDay } from "./progress.js";
+import {
+  createEmptyProgress,
+  getDayChapterProgress,
+  markThroughDate,
+  toggleCompletedChapter,
+  toggleCompletedDay,
+} from "./progress.js";
 import { SUPABASE_CONFIG } from "./supabase-config.js";
 import { createCloudProgressStore, isSupabaseConfigured } from "./supabase-sync.js";
 
@@ -18,6 +24,7 @@ export function main({ root = document.querySelector("#app") } = {}) {
   const state = {
     cloudStore: null,
     filter: "all",
+    expandedDayId: null,
     plan: buildReadingPlan(),
     progress: createEmptyProgress(),
     query: "",
@@ -35,8 +42,19 @@ function bindEvents(root, state) {
   root.addEventListener("change", (event) => {
     const target = event.target;
 
+    if (target.matches("[data-chapter-checkbox]")) {
+      state.progress = toggleCompletedChapter(state.progress, target.value, target.checked);
+      persistProgress(root, state);
+      return;
+    }
+
     if (target.matches("[data-day-checkbox]")) {
-      state.progress = toggleCompletedDay(state.progress, target.value, target.checked);
+      const day = findDayById(state.plan, target.value);
+
+      if (day) {
+        state.progress = toggleCompletedDay(state.progress, day, target.checked);
+      }
+
       persistProgress(root, state);
       return;
     }
@@ -76,13 +94,20 @@ function bindEvents(root, state) {
     }
 
     if (action.dataset.action === "reset") {
-      state.progress = { completedDayIds: [] };
+      state.progress = createEmptyProgress();
       persistProgress(root, state);
       return;
     }
 
     if (action.dataset.action === "print") {
       window.print();
+      return;
+    }
+
+    if (action.dataset.action === "toggle-day-details") {
+      state.expandedDayId =
+        state.expandedDayId === action.dataset.dayId ? null : action.dataset.dayId;
+      render(root, state);
       return;
     }
 
@@ -114,7 +139,10 @@ async function initializeCloudSync(root, state) {
   });
 
   try {
-    state.cloudStore = await createCloudProgressStore({ config: SUPABASE_CONFIG });
+    state.cloudStore = await createCloudProgressStore({
+      config: SUPABASE_CONFIG,
+      plan: state.plan,
+    });
     state.sync.unsubscribe = state.cloudStore.onAuthStateChange((session) => {
       void applyCloudSession(root, state, session);
     });
@@ -301,14 +329,14 @@ function render(root, state) {
   }
 
   const summary = summarizeProgress({
-    completedDayIds: state.progress.completedDayIds,
+    completedChapterIds: state.progress.completedChapterIds,
     plan: state.plan,
     todayIso: state.todayIso,
   });
-  const completedDayIds = new Set(state.progress.completedDayIds);
+  const completedChapterIds = new Set(state.progress.completedChapterIds);
   const currentDay = findCurrentDay(state.plan, state.todayIso);
   const visibleDays = getVisibleDays({
-    completedDayIds,
+    completedChapterIds,
     filter: state.filter,
     plan: state.plan,
     query: state.query,
@@ -318,10 +346,10 @@ function render(root, state) {
     ${renderHeader(state)}
     <section class="workspace" aria-label="Reading tracker">
       <aside class="workspace-sidebar">
-      ${renderTodayPanel({ completedDayIds, currentDay, state })}
+      ${renderTodayPanel({ completedChapterIds, currentDay, state })}
         ${renderProgressPanel(summary)}
       </aside>
-      ${renderSchedule({ completedDayIds, state, visibleDays })}
+      ${renderSchedule({ completedChapterIds, state, visibleDays })}
     </section>
   `;
 }
@@ -486,10 +514,10 @@ function getStatusText(summary) {
   return "On track";
 }
 
-function renderTodayPanel({ completedDayIds, currentDay, state }) {
-  const isComplete = completedDayIds.has(currentDay.id);
-  const statusClass = isComplete ? "" : "warning";
-  const statusText = isComplete ? "Complete" : "Open";
+function renderTodayPanel({ completedChapterIds, currentDay, state }) {
+  const progress = getDayChapterProgress(currentDay, completedChapterIds);
+  const statusClass = progress.isComplete ? "" : "warning";
+  const statusText = getDayStatusText(progress);
   const dateLabel = formatFullDate(currentDay.date);
 
   return `
@@ -502,15 +530,20 @@ function renderTodayPanel({ completedDayIds, currentDay, state }) {
         <p class="meta">Day ${currentDay.dayNumber} of ${state.plan.length} - ${dateLabel}</p>
       </div>
       <p class="reading">${escapeHtml(formatReading(currentDay.readings))}</p>
+      ${renderChapterChecklist({
+        completedChapterIds,
+        day: currentDay,
+        idPrefix: "today",
+      })}
       <div class="day-actions">
         <label>
           <input
             data-day-checkbox
             type="checkbox"
             value="${currentDay.id}"
-            ${isComplete ? "checked" : ""}
+            ${progress.isComplete ? "checked" : ""}
           >
-          Mark complete
+          Mark day complete
         </label>
         <a href="${readingUrl(currentDay.readings, state.translation)}" target="_blank" rel="noreferrer">Open in BibleGateway</a>
       </div>
@@ -518,14 +551,15 @@ function renderTodayPanel({ completedDayIds, currentDay, state }) {
   `;
 }
 
-function renderSchedule({ completedDayIds, state, visibleDays }) {
+function renderSchedule({ completedChapterIds, state, visibleDays }) {
   const rows =
     visibleDays.length > 0
       ? visibleDays
           .map((day) =>
             renderScheduleRow({
-              completedDayIds,
+              completedChapterIds,
               day,
+              expandedDayId: state.expandedDayId,
               isToday: day.date === state.todayIso,
               translation: state.translation,
             }),
@@ -566,6 +600,7 @@ function renderFilterSegments(activeFilter) {
             <button
               class="segment-button ${activeFilter === value ? "is-active" : ""}"
               data-filter-value="${value}"
+              data-action="filter"
               type="button"
               aria-pressed="${activeFilter === value}"
             >
@@ -578,9 +613,16 @@ function renderFilterSegments(activeFilter) {
   `;
 }
 
-function renderScheduleRow({ completedDayIds, day, isToday, translation }) {
-  const isComplete = completedDayIds.has(day.id);
-  const className = ["schedule-row", isComplete ? "is-complete" : "", isToday ? "is-today" : ""]
+function renderScheduleRow({ completedChapterIds, day, expandedDayId, isToday, translation }) {
+  const progress = getDayChapterProgress(day, completedChapterIds);
+  const isExpanded = expandedDayId === day.id;
+  const detailId = `day-${day.dayNumber}-details`;
+  const className = [
+    "schedule-row",
+    progress.isComplete ? "is-complete" : "",
+    progress.isStarted && !progress.isComplete ? "is-started" : "",
+    isToday ? "is-today" : "",
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -591,8 +633,8 @@ function renderScheduleRow({ completedDayIds, day, isToday, translation }) {
         data-day-checkbox
         type="checkbox"
         value="${day.id}"
-        ${isComplete ? "checked" : ""}
-        aria-label="Mark ${formatFullDate(day.date)} complete"
+        ${progress.isComplete ? "checked" : ""}
+        aria-label="Mark ${formatFullDate(day.date)} assigned chapters complete"
       >
       <div class="date-block">
         <strong>${formatShortDate(day.date)}</strong>
@@ -600,10 +642,80 @@ function renderScheduleRow({ completedDayIds, day, isToday, translation }) {
       </div>
       <div class="reading-block">
         <strong>${escapeHtml(formatReading(day.readings))}</strong>
-        <span>${day.chapterCount} chapters</span>
+        <span>${day.chapterCount} assigned chapters</span>
       </div>
-      <a class="row-link" href="${readingUrl(day.readings, translation)}" target="_blank" rel="noreferrer">Read</a>
+      <div class="row-progress" aria-label="${progress.completedChapters} of ${progress.totalChapters} chapters read">
+        <span>${progress.completedChapters} / ${progress.totalChapters} read</span>
+        <div class="mini-progress-track">
+          <div class="mini-progress-bar" style="width: ${getProgressPercent(progress)}%"></div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button
+          class="button secondary compact"
+          data-action="toggle-day-details"
+          data-day-id="${day.id}"
+          type="button"
+          aria-controls="${detailId}"
+          aria-expanded="${isExpanded}"
+        >${isExpanded ? "Hide" : "Track"}</button>
+        <a class="row-link" href="${readingUrl(day.readings, translation)}" target="_blank" rel="noreferrer">Read</a>
+      </div>
+      ${
+        isExpanded
+          ? renderChapterDetail({
+              completedChapterIds,
+              day,
+              detailId,
+            })
+          : ""
+      }
     </article>
+  `;
+}
+
+function renderChapterDetail({ completedChapterIds, day, detailId }) {
+  const progress = getDayChapterProgress(day, completedChapterIds);
+
+  return `
+    <div class="chapter-detail" id="${detailId}">
+      <div class="chapter-detail-heading">
+        <strong>Track chapters</strong>
+        <span>${progress.completedChapters} / ${progress.totalChapters} read</span>
+      </div>
+      ${renderChapterChecklist({
+        completedChapterIds,
+        day,
+        idPrefix: `detail-day-${day.dayNumber}`,
+      })}
+    </div>
+  `;
+}
+
+function renderChapterChecklist({ completedChapterIds, day, idPrefix }) {
+  return `
+    <div class="chapter-checklist" aria-label="${escapeHtml(formatShortDate(day.date))} chapters">
+      ${day.chapters
+        .map((chapter, index) => {
+          const inputId = `${idPrefix}-chapter-${index + 1}`;
+          const isComplete = completedChapterIds.has(chapter.id);
+
+          return `
+            <label class="chapter-check ${isComplete ? "is-complete" : ""}" for="${inputId}">
+              <input
+                id="${inputId}"
+                data-chapter-checkbox
+                type="checkbox"
+                value="${escapeHtml(chapter.id)}"
+                ${isComplete ? "checked" : ""}
+                aria-label="Mark ${escapeHtml(chapter.id)} read"
+              >
+              <span>${escapeHtml(chapter.id)}</span>
+            </label>
+          `;
+        })
+        .join("")}
+    </div>
   `;
 }
 
@@ -635,23 +747,29 @@ function canUseTracker(state) {
   return Boolean(state.sync.session && state.sync.progressLoaded);
 }
 
-function getVisibleDays({ completedDayIds, filter, plan, query }) {
+function getVisibleDays({ completedChapterIds, filter, plan, query }) {
   const normalizedQuery = query.trim().toLowerCase();
 
   return plan.filter((day) => {
-    const isComplete = completedDayIds.has(day.id);
+    const progress = getDayChapterProgress(day, completedChapterIds);
     const reading = formatReading(day.readings).toLowerCase();
+    const chapterText = day.chapters.map((chapter) => chapter.id).join(" ").toLowerCase();
     const matchesQuery =
       normalizedQuery.length === 0 ||
       reading.includes(normalizedQuery) ||
+      chapterText.includes(normalizedQuery) ||
       day.date.includes(normalizedQuery);
     const matchesFilter =
       filter === "all" ||
-      (filter === "remaining" && !isComplete) ||
-      (filter === "complete" && isComplete);
+      (filter === "remaining" && !progress.isComplete) ||
+      (filter === "complete" && progress.isComplete);
 
     return matchesQuery && matchesFilter;
   });
+}
+
+function findDayById(plan, dayId) {
+  return plan.find((day) => day.id === dayId) ?? null;
 }
 
 function findCurrentDay(plan, todayIso) {
@@ -666,6 +784,24 @@ function findCurrentDay(plan, todayIso) {
   }
 
   return plan.find((day) => day.date === todayIso) ?? plan[0];
+}
+
+function getDayStatusText(progress) {
+  if (progress.isComplete) {
+    return "Complete";
+  }
+
+  if (progress.isStarted) {
+    return `${progress.completedChapters} / ${progress.totalChapters} read`;
+  }
+
+  return "Open";
+}
+
+function getProgressPercent(progress) {
+  return progress.totalChapters === 0
+    ? 0
+    : (progress.completedChapters / progress.totalChapters) * 100;
 }
 
 function readingUrl(readings, translation) {

@@ -1,43 +1,80 @@
 export function createEmptyProgress() {
   return {
-    completedDayIds: [],
+    completedChapterIds: [],
   };
 }
 
 export function normalizeProgress(progress) {
-  if (!progress || !Array.isArray(progress.completedDayIds)) {
+  if (!progress || !Array.isArray(progress.completedChapterIds)) {
     return createEmptyProgress();
   }
 
   return {
-    completedDayIds: Array.from(new Set(progress.completedDayIds))
-      .filter((dayId) => typeof dayId === "string")
-      .sort(),
+    completedChapterIds: Array.from(new Set(progress.completedChapterIds)).filter(
+      (chapterId) => typeof chapterId === "string",
+    ),
   };
 }
 
-export function toggleCompletedDay(progress, dayId, completed) {
+export function toggleCompletedChapter(progress, chapterId, completed) {
   const normalized = normalizeProgress(progress);
-  const completedDayIds = new Set(normalized.completedDayIds);
+  const completedChapterIds = new Set(normalized.completedChapterIds);
 
   if (completed) {
-    completedDayIds.add(dayId);
+    completedChapterIds.add(chapterId);
   } else {
-    completedDayIds.delete(dayId);
+    completedChapterIds.delete(chapterId);
   }
 
-  return normalizeProgress({ completedDayIds: Array.from(completedDayIds) });
+  return normalizeProgress({ completedChapterIds: Array.from(completedChapterIds) });
+}
+
+export function toggleCompletedDay(progress, day, completed) {
+  const normalized = normalizeProgress(progress);
+  const completedChapterIds = new Set(normalized.completedChapterIds);
+
+  for (const chapter of day.chapters) {
+    if (completed) {
+      completedChapterIds.add(chapter.id);
+    } else {
+      completedChapterIds.delete(chapter.id);
+    }
+  }
+
+  return normalizeProgress({ completedChapterIds: Array.from(completedChapterIds) });
 }
 
 export function markThroughDate(progress, plan, isoDate) {
   const normalized = normalizeProgress(progress);
-  const completedDayIds = new Set(normalized.completedDayIds);
+  const completedChapterIds = new Set(normalized.completedChapterIds);
 
   for (const day of plan) {
     if (day.date <= isoDate) {
-      completedDayIds.add(day.id);
+      for (const chapter of day.chapters) {
+        completedChapterIds.add(chapter.id);
+      }
     }
   }
 
-  return normalizeProgress({ completedDayIds: Array.from(completedDayIds) });
+  return normalizeProgress({ completedChapterIds: Array.from(completedChapterIds) });
+}
+
+export function getDayChapterProgress(day, completedChapterIds) {
+  const completed = new Set(completedChapterIds);
+  const completedChapters = day.chapters.filter((chapter) => completed.has(chapter.id)).length;
+
+  return {
+    completedChapters,
+    isComplete: completedChapters === day.chapterCount,
+    isStarted: completedChapters > 0,
+    totalChapters: day.chapterCount,
+  };
+}
+
+export function getCompletedDayIds(plan, completedChapterIds) {
+  const completed = new Set(completedChapterIds);
+
+  return plan
+    .filter((day) => day.chapters.every((chapter) => completed.has(chapter.id)))
+    .map((day) => day.id);
 }

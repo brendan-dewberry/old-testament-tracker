@@ -42,8 +42,13 @@ test("serves the app shell and browser assets over HTTP", async () => {
     assert.match(html, /<main id="app"/);
     assert.match(html, /type="module" src="\.\/src\/app\.js"/);
     assert.match(css, /\.progress-bar/);
+    assert.match(css, /\.chapter-checklist/);
+    assert.match(css, /\.chapter-detail/);
     assert.match(app, /createCloudProgressStore/);
+    assert.match(app, /data-chapter-checkbox/);
+    assert.match(app, /toggle-day-details/);
     assert.doesNotMatch(app, /localStorage|storage\.js/);
+    assert.match(schema, /completed_chapter_ids/);
     assert.match(schema, /enable row level security/);
   } finally {
     server.close();

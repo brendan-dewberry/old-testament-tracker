@@ -516,18 +516,20 @@ button.ghost:hover {
 }
 
 .schedule-list {
-  display: grid;
+  display: block;
   min-height: 0;
   overflow: auto;
 }
 
 .schedule-row {
   display: grid;
-  grid-template-columns: 42px minmax(128px, 0.34fr) minmax(180px, 1fr) auto;
-  gap: 14px;
+  grid-template-columns:
+    42px minmax(128px, 0.28fr) minmax(220px, 1fr) minmax(120px, 0.25fr)
+    auto;
+  gap: 12px 14px;
   align-items: center;
-  min-height: 66px;
-  padding: 10px 20px;
+  min-height: 74px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   transition:
     background 140ms ease,
@@ -546,9 +548,17 @@ button.ghost:hover {
   background: #f0fdf4;
 }
 
+.schedule-row.is-started {
+  background: #fffbeb;
+}
+
 .schedule-row.is-today {
   box-shadow: inset 4px 0 0 var(--primary);
   background: #f8fafc;
+}
+
+.schedule-row.is-started.is-today {
+  background: #fefce8;
 }
 
 .schedule-row.is-complete.is-today {
@@ -569,6 +579,105 @@ button.ghost:hover {
 .reading-block span {
   color: var(--muted-foreground);
   font-size: 0.86rem;
+}
+
+.row-progress {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.row-progress span {
+  color: var(--muted-foreground);
+  font-size: 0.86rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.mini-progress-track {
+  overflow: hidden;
+  height: 7px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.mini-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.button.compact,
+button.compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+}
+
+.chapter-detail {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.chapter-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: space-between;
+  color: var(--foreground);
+  font-size: 0.9rem;
+}
+
+.chapter-detail-heading span {
+  color: var(--muted-foreground);
+  font-weight: 750;
+}
+
+.chapter-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chapter-check {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.chapter-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.chapter-check.is-complete {
+  border-color: #bbf7d0;
+  background: var(--success);
+  color: var(--success-foreground);
 }
 
 .row-link {
@@ -655,8 +764,15 @@ button.ghost:hover {
   }
 
   .reading-block,
+  .row-progress,
+  .row-actions,
+  .chapter-detail,
   .row-link {
     grid-column: 2;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
   }
 }
 

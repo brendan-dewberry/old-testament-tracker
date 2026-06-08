@@ -4,8 +4,10 @@ import test from "node:test";
 import { buildReadingPlan, summarizeProgress } from "../../src/plan.js";
 import {
   createEmptyProgress,
+  getDayChapterProgress,
   markThroughDate,
   normalizeProgress,
+  toggleCompletedChapter,
   toggleCompletedDay,
 } from "../../src/progress.js";
 
@@ -13,35 +15,40 @@ test("progress operations work against the generated reading plan", () => {
   const plan = buildReadingPlan();
   let progress = createEmptyProgress();
 
-  progress = toggleCompletedDay(progress, plan[0].id, true);
-  progress = toggleCompletedDay(progress, plan[1].id, true);
-  progress = toggleCompletedDay(progress, plan[1].id, false);
+  progress = toggleCompletedChapter(progress, plan[0].chapters[0].id, true);
+
+  assert.deepEqual(getDayChapterProgress(plan[0], progress.completedChapterIds), {
+    completedChapters: 1,
+    isComplete: false,
+    isStarted: true,
+    totalChapters: plan[0].chapterCount,
+  });
+
+  progress = toggleCompletedDay(progress, plan[1], true);
+  progress = toggleCompletedDay(progress, plan[1], false);
   progress = markThroughDate(progress, plan, plan[4].date);
 
   const summary = summarizeProgress({
-    completedDayIds: progress.completedDayIds,
+    completedChapterIds: progress.completedChapterIds,
     plan,
     todayIso: plan[4].date,
   });
 
-  assert.deepEqual(progress.completedDayIds, [
-    "2026-05-25",
-    "2026-05-26",
-    "2026-05-27",
-    "2026-05-28",
-    "2026-05-29",
-  ]);
+  assert.deepEqual(
+    progress.completedChapterIds,
+    plan.slice(0, 5).flatMap((day) => day.chapters.map((chapter) => chapter.id)),
+  );
   assert.equal(summary.completedDays, 5);
   assert.equal(summary.overdueChapters, 0);
 });
 
-test("normalizeProgress ignores bad saved data while preserving valid day ids", () => {
+test("normalizeProgress ignores bad saved data while preserving valid chapter ids", () => {
   assert.deepEqual(
     normalizeProgress({
-      completedDayIds: ["2026-05-26", 12, "2026-05-25", "2026-05-25", null],
+      completedChapterIds: ["Genesis 2", 12, "Genesis 1", "Genesis 1", null],
     }),
     {
-      completedDayIds: ["2026-05-25", "2026-05-26"],
+      completedChapterIds: ["Genesis 2", "Genesis 1"],
     },
   );
 });

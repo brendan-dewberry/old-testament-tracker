@@ -33,3 +33,5 @@ https://brendan-dewberry.github.io/old-testament-tracker/
 ```
 
 Only the anon key belongs in the browser. Do not put a service-role key in this project.
+
+Progress is stored per authenticated user and plan. The `completed_chapter_ids` JSONB column stores chapter IDs such as `Genesis 26`, and `completed_day_ids` is kept as a derived list for fully completed assigned days.
