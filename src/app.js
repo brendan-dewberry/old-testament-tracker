@@ -16,6 +16,7 @@ import {
 } from "./progress.js";
 import { SUPABASE_CONFIG } from "./supabase-config.js";
 import { createCloudProgressStore, isSupabaseConfigured } from "./supabase-sync.js";
+import { captureViewportState, restoreViewportState } from "./viewport.js";
 
 const TRANSLATIONS = ["ESV", "NIV", "KJV", "NKJV", "NLT", "NASB", "CSB"];
 const DEFAULT_TRANSLATION = "ESV";
@@ -61,7 +62,7 @@ function bindEvents(root, state) {
 
     if (target.matches("[data-translation]")) {
       state.translation = target.value;
-      render(root, state);
+      renderPreservingViewport(root, state);
       void saveCloudSnapshot(root, state);
     }
   });
@@ -71,7 +72,7 @@ function bindEvents(root, state) {
 
     if (target.matches("[data-search]")) {
       state.query = target.value;
-      render(root, state);
+      renderPreservingViewport(root, state);
       return;
     }
 
@@ -107,7 +108,7 @@ function bindEvents(root, state) {
     if (action.dataset.action === "toggle-day-details") {
       state.expandedDayId =
         state.expandedDayId === action.dataset.dayId ? null : action.dataset.dayId;
-      render(root, state);
+      renderPreservingViewport(root, state);
       return;
     }
 
@@ -123,7 +124,7 @@ function bindEvents(root, state) {
 
     if (action.dataset.filterValue) {
       state.filter = action.dataset.filterValue;
-      render(root, state);
+      renderPreservingViewport(root, state);
     }
   });
 }
@@ -254,11 +255,11 @@ async function signOut(root, state) {
 
 function persistProgress(root, state) {
   if (!state.sync.session) {
-    render(root, state);
+    renderPreservingViewport(root, state);
     return;
   }
 
-  render(root, state);
+  renderPreservingViewport(root, state);
   void saveCloudSnapshot(root, state);
 }
 
@@ -316,7 +317,13 @@ function setSyncState(root, state, patch) {
     ...state.sync,
     ...patch,
   };
+  renderPreservingViewport(root, state);
+}
+
+function renderPreservingViewport(root, state) {
+  const viewportState = captureViewportState({ root });
   render(root, state);
+  restoreViewportState(viewportState, { root });
 }
 
 function render(root, state) {
